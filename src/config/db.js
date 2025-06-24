@@ -7,11 +7,6 @@ const sequelize = new Sequelize(process.env.MYSQLDATABASE, process.env.MYSQLUSER
     logging: false,
     dialectOptions: {
         connectTimeout: 10000
-    },
-    logging: msg => {
-        if (msg.toLowerCase().includes("error")) {
-            console.error("ERRORE SQL:", msg)
-        }
     }
 })
 

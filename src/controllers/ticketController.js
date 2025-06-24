@@ -1,5 +1,6 @@
-import Ticket from "../models/Ticket.js"
-import User from "../models/User.js"
+import Ticket from "../models/ticketModel.js"
+import redis from "../redisClient.js"
+import User from "../models/User.js" //    QUESTO E UN IMPORT TEMPORANEO
 
 // CREAZIONE DI UN BIGLIETTO
 export const createTicket = async (req, res) => {
@@ -31,6 +32,17 @@ export const createTicket = async (req, res) => {
             status: "disponibile",
             userId
         })
+        await redis.publish(
+            "ticket-creato",
+            JSON.stringify({
+                id: newTicket.id,
+                title: newTicket.title,
+                price: newTicket.price,
+                eventDate: newTicket.eventDate,
+                userId: newTicket.userId,
+                status: newTicket.status
+            })
+        )
 
         const createdTicket = await Ticket.findByPk(newTicket.id, {
             include: {
