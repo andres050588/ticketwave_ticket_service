@@ -4,6 +4,7 @@ import Ticket from "./models/ticketModel.js"
 import dotenv from "dotenv"
 import cors from "cors"
 import routerTicket from "./routes/ticketRoutes.js"
+import "./events/subscriber.js"
 
 dotenv.config()
 
@@ -20,7 +21,7 @@ app.use("/api", routerTicket)
 async function startServer() {
     try {
         await sequelize.authenticate()
-        console.log("✅ Connessione al database ticket_service riuscita!")
+        console.log("Connessione al database ticket_service riuscita!")
         await sequelize.sync({ force: true })
 
         const PORT = process.env.PORT || 3002

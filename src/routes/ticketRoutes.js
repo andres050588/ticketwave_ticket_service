@@ -1,6 +1,6 @@
 import express from "express"
 import { createTicket, getTicketById, availableTickets, getMyTickets } from "../controllers/ticketController.js"
-import { verifyToken } from "../middleware/authMiddleware.js"
+import { verifyToken, verifyAdmin } from "../../../common/middlewares/verifyToken.js"
 import multerUpload from "../middleware/multerUpload.js"
 
 const routerTickets = express.Router()
