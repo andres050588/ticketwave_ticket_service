@@ -10,17 +10,23 @@ export const createTicket = async (req, res) => {
         if (!req.file || !req.file.path) {
             return res.status(400).json({ error: "L'immagine è obbligatoria" })
         }
-        const imageURL = req.file?.path || req.file?.secure_url
+        const imageURL = req.file?.secure_url || req.file?.path
 
         // Validazioni
         if (!title || !price || !eventDate) {
             return res.status(400).json({ error: "Campi obbligatori mancanti" })
+        }
+        if (isNaN(Date.parse(eventDate))) {
+            return res.status(400).json({ error: "La data evento non è valida" })
         }
         if (title.length < 3 || title.length > 100) {
             return res.status(400).json({ error: "Il titolo deve avere tra 3 e 100 caratteri" })
         }
         if (isNaN(price) || price <= 0) {
             return res.status(400).json({ error: "Il prezzo deve essere un numero positivo" })
+        }
+        if (!/^\d+(\.\d{1,2})?$/.test(price.toString())) {
+            return res.status(400).json({ error: "Formato prezzo non valido" })
         }
 
         const newTicket = await Ticket.create({
@@ -114,6 +120,9 @@ export const availableTickets = async (req, res) => {
                     title: ticket.title,
                     price: ticket.price,
                     status: ticket.status,
+                    prenotato: ticket.status === "impegnato",
+                    venduto: ticket.status === "acquistato",
+                    disponibile: ticket.status === "disponibile",
                     userId: ticket.userId,
                     createdAt: ticket.createdAt,
                     eventDate: ticket.eventDate,
@@ -211,7 +220,57 @@ export const getMyTickets = async (req, res) => {
             order: [["createdAt", "DESC"]]
         })
 
-        res.json(myTickets)
+        const ticketsArricchiti = await Promise.all(
+            myTickets.map(async ticket => {
+                let seller = null
+                let fallback = false
+
+                try {
+                    const userData = await redis.get(`user:${ticket.userId}`)
+                    if (userData) {
+                        try {
+                            seller = JSON.parse(userData)
+                        } catch (parseErr) {
+                            console.warn(`Dati corrotti per utente ${ticket.userId}:`, parseErr)
+                            fallback = true
+                        }
+                    } else {
+                        fallback = true
+                    }
+                } catch (redisErr) {
+                    console.warn(`Errore Redis per utente ${ticket.userId}:`, redisErr)
+                    fallback = true
+                }
+
+                return {
+                    id: ticket.id,
+                    title: ticket.title,
+                    price: ticket.price,
+                    status: ticket.status,
+                    prenotato: ticket.status === "impegnato",
+                    venduto: ticket.status === "acquistato",
+                    disponibile: ticket.status === "disponibile",
+                    userId: ticket.userId,
+                    createdAt: ticket.createdAt,
+                    eventDate: ticket.eventDate,
+                    imageURL: ticket.imageURL,
+                    venditore: seller
+                        ? {
+                              id: seller.id,
+                              name: seller.name,
+                              email: seller.email
+                          }
+                        : {
+                              id: null,
+                              name: "Non disponibile",
+                              email: null
+                          },
+                    venditoreFallback: fallback
+                }
+            })
+        )
+
+        res.json(ticketsArricchiti)
     } catch (error) {
         console.error("Errore nel recupero dei biglietti personali:", error)
         res.status(500).json({ error: "Errore del server" })
@@ -228,6 +287,9 @@ export const deleteTicket = async (request, response) => {
     try {
         const ticketToDelete = await Ticket.findByPk(ticketId)
         if (!ticketToDelete) return response.status(404).json({ error: "Biglietto non trovato" })
+        if (ticketToDelete.status === "acquistato") {
+            return response.status(400).json({ error: "Non puoi cancellare un biglietto già acquistato" })
+        }
 
         if (ticketToDelete.userId !== userId && !isAdmin) {
             return response.status(403).json({ error: "Non hai i permessi per cancellare questo biglietto" })

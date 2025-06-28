@@ -7,6 +7,7 @@ await subscriber.subscribe("ordine-completato")
 await subscriber.subscribe("ordine-annullato")
 await subscriber.subscribe("ordine-creato")
 await subscriber.subscribe("user-aggiornato")
+await subscriber.subscribe("ordine-scaduto")
 
 console.log("🔍 Redis config (subscriber):", redis.options)
 
@@ -67,6 +68,36 @@ subscriber.on("message", async (channel, message) => {
         console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
     }
 
+    if (channel === "ordine-scaduto") {
+        let data
+        try {
+            data = JSON.parse(message)
+        } catch (err) {
+            console.error(`[ticket_service] ❌ Errore parsing JSON su ${channel}:`, message)
+            return
+        }
+
+        const ticketId = data?.ticketId
+        if (!ticketId) {
+            console.warn(`[ticket_service] ⚠️ ticketId mancante nel messaggio:`, data)
+            return
+        }
+
+        const ticket = await Ticket.findByPk(ticketId)
+        if (!ticket) {
+            console.warn(`[ticket_service] ⚠️ Ticket ${ticketId} non trovato nel DB`)
+            return
+        }
+
+        if (ticket.status === "impegnato") {
+            await ticket.update({ status: "disponibile" })
+            await redis.set(`ticket:${ticketId}`, JSON.stringify(ticket))
+
+            console.log(`[ticket_service] 🕒 Ticket ${ticketId} scaduto: aggiornato a "disponibile"`)
+            console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
+        }
+    }
+
     if (channel === "ordine-creato") {
         let data
         try {
@@ -114,4 +145,4 @@ subscriber.on("message", async (channel, message) => {
     }
 })
 
-console.log("[ticket_service] ✅ Subscriber attivo per ordine-creato, ordine-completato, ordine-annullato e user-aggiornato")
+console.log("[ticket_service] ✅ Subscriber attivo per ordine-creato, ordine-completato, ordine-annullato, ordine-scaduto e user-aggiornato")
