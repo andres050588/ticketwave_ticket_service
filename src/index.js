@@ -1,12 +1,9 @@
 import express from "express"
 import sequelize from "./config/db.js"
 import Ticket from "./models/ticketModel.js"
-import dotenv from "dotenv"
 import cors from "cors"
 import routerTicket from "./routes/ticketRoutes.js"
 import "./events/subscriber.js"
-
-dotenv.config()
 
 const app = express()
 
