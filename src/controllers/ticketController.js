@@ -10,7 +10,7 @@ export const createTicket = async (req, res) => {
         if (!req.file || !req.file.path) {
             return res.status(400).json({ error: "L'immagine è obbligatoria" })
         }
-        const imageURL = req.file?.path
+        const imageURL = req.file?.path || req.file?.secure_url
 
         // Validazioni
         if (!title || !price || !eventDate) {
@@ -32,6 +32,7 @@ export const createTicket = async (req, res) => {
             userId
         })
         await redis.set(`ticket:${newTicket.id}`, JSON.stringify(newTicket))
+        // 🔔 Pubblica evento Redis per la creazione di un nuovo biglietto
         await redis.publish(
             "ticket-creato",
             JSON.stringify({
@@ -61,7 +62,7 @@ export const createTicket = async (req, res) => {
             title: createdTicket.title,
             price: createdTicket.price,
             eventDate: createdTicket.eventDate,
-            imageURL: createdTicket.imageURL,
+            imageURL: createdTicket.imageURL || "URL immagine non disponibile",
             status: createdTicket.status,
             createdAt: createdTicket.createdAt,
             venditore: seller
@@ -174,11 +175,13 @@ export const getTicketById = async (req, res) => {
             title: ticket.title,
             price: ticket.price,
             status: ticket.status,
+            prenotato: ticket.status === "impegnato",
+            venduto: ticket.status === "acquistato",
+            disponibile: ticket.status === "disponibile",
             userId: ticket.userId,
             createdAt: ticket.createdAt,
             eventDate: ticket.eventDate,
             imageURL: ticket.imageURL,
-            venduto: ticket.status === "acquistato",
             venditore: seller
                 ? {
                       id: seller.id,
@@ -227,12 +230,13 @@ export const deleteTicket = async (request, response) => {
         if (!ticketToDelete) return response.status(404).json({ error: "Biglietto non trovato" })
 
         if (ticketToDelete.userId !== userId && !isAdmin) {
-            return res.status(403).json({ error: "Non hai i permessi per cancellare questo biglietto" })
+            return response.status(403).json({ error: "Non hai i permessi per cancellare questo biglietto" })
         }
 
         // Cancello dal DB e da Redis
         await ticketToDelete.destroy()
         await redis.del(`ticket:${ticketId}`)
+        // 🔔 Pubblica evento Redis per la cancellazione del biglietto
         await redis.publish(
             "ticket-cancellato",
             JSON.stringify({
@@ -243,9 +247,9 @@ export const deleteTicket = async (request, response) => {
             })
         )
 
-        return res.json({ message: "Biglietto cancellato con successo" })
+        return response.json({ message: "Biglietto cancellato con successo" })
     } catch (error) {
         console.error("Errore nella cancellazione del biglietto:", error)
-        res.status(500).json({ error: "Errore del server" })
+        response.status(500).json({ error: "Errore del server" })
     }
 }
