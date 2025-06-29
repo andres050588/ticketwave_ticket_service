@@ -12,6 +12,11 @@ routerTickets.get("/tickets/:id", getTicketById)
 // GET /api/tickets - ritorna tutti i biglietti disponibili da ../controllers/ticketController.js
 routerTickets.get("/tickets", availableTickets)
 // GET /api/mytickets - ritorna la lista dei biglietti dell'utente loggato
-routerTickets.get("/mytickets", verifyToken, getMyTickets)
+routerTickets.get("tickets/mytickets", verifyToken, getMyTickets)
+
+// Fallback: cattura rotte non definite
+routerTickets.all("/*", (req, res) => {
+    res.status(404).json({ message: "Endpoint non trovato in /api/tickets" })
+})
 
 export default routerTickets
