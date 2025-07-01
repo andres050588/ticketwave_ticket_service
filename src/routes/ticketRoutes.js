@@ -1,5 +1,5 @@
 import express from "express"
-import { createTicket, getTicketById, availableTickets, getMyTickets } from "../controllers/ticketController.js"
+import { createTicket, getTicketById, availableTickets, getMyTickets, getTicketsBySeller } from "../controllers/ticketController.js"
 import { verifyToken, verifyAdmin } from "../middleware/verifyToken.js"
 import multerUpload from "../middleware/multerUpload.js"
 
@@ -11,8 +11,10 @@ routerTickets.post("/tickets", verifyToken, multerUpload.single("image"), create
 routerTickets.get("/tickets/:id", getTicketById)
 // GET /api/tickets - ritorna tutti i biglietti disponibili da ../controllers/ticketController.js
 routerTickets.get("/tickets", availableTickets)
-// GET /api/mytickets - ritorna la lista dei biglietti dell'utente loggato
-routerTickets.get("tickets/mytickets", verifyToken, getMyTickets)
+// GET /api/tickets/mytickets - ritorna la lista dei biglietti dell'utente loggato
+routerTickets.get("/tickets/mytickets", verifyToken, getMyTickets)
+// GET /api/tickets/seller/:userId - restituisce i biglietti di un utente
+routerTickets.get("/tickets/seller/:userId", getTicketsBySeller)
 
 // Fallback: cattura rotte non definite
 routerTickets.all("/*", (req, res) => {

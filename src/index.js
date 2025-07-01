@@ -23,7 +23,7 @@ app.options(
 )
 app.use(express.json())
 
-// Rotte
+// Routes
 app.use("/api", routerTicket)
 
 // Connessione DB + avvio server

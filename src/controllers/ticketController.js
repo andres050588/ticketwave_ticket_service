@@ -277,6 +277,70 @@ export const getMyTickets = async (req, res) => {
     }
 }
 
+// LISTA DEI BIGLIETTI PER UTENTE
+export const getTicketsBySeller = async (req, res) => {
+    try {
+        const { userId } = req.params
+        const tickets = await Ticket.findAll({
+            where: { userId },
+            order: [["createdAt", "DESC"]]
+        })
+
+        const userCache = {} // Cache locale per evitare richieste duplicate
+
+        const enrichedTickets = await Promise.all(
+            tickets.map(async ticket => {
+                let seller = null
+                let fallback = false
+
+                try {
+                    if (userCache[ticket.userId]) {
+                        seller = userCache[ticket.userId]
+                    } else {
+                        const userData = await redis.get(`user:${ticket.userId}`)
+                        if (userData) {
+                            seller = JSON.parse(userData)
+                            userCache[ticket.userId] = seller
+                        } else {
+                            fallback = true
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Errore Redis utente ${ticket.userId}`, err)
+                    fallback = true
+                }
+
+                return {
+                    id: ticket.id,
+                    title: ticket.title,
+                    price: ticket.price,
+                    status: ticket.status,
+                    eventDate: ticket.eventDate,
+                    imageURL: ticket.imageURL,
+                    userId: ticket.userId,
+                    createdAt: ticket.createdAt,
+                    venditore: seller
+                        ? {
+                              id: seller.id,
+                              name: seller.name,
+                              email: seller.email
+                          }
+                        : {
+                              id: null,
+                              name: "Non disponibile",
+                              email: null
+                          },
+                    venditoreFallback: fallback
+                }
+            })
+        )
+
+        res.json(enrichedTickets)
+    } catch (err) {
+        console.error("Errore nel recupero biglietti del venditore:", err)
+        res.status(500).json({ error: "Errore del server" })
+    }
+}
 // CANCELLARE UN BIGLIETTO
 
 export const deleteTicket = async (request, response) => {

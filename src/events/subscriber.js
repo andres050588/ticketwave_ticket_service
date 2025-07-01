@@ -9,8 +9,6 @@ await subscriber.subscribe("ordine-creato")
 await subscriber.subscribe("user-aggiornato")
 await subscriber.subscribe("ordine-scaduto")
 
-console.log("🔍 Redis config (subscriber):", redis.options)
-
 subscriber.on("message", async (channel, message) => {
     if (channel === "ordine-completato") {
         let data
@@ -36,8 +34,8 @@ subscriber.on("message", async (channel, message) => {
         await ticket.update({ status: "acquistato" })
         await redis.set(`ticket:${ticketId}`, JSON.stringify(ticket))
 
-        console.log(`[ticket_service] 🎫 Ticket ${ticketId} aggiornato a "acquistato"`)
-        console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
+        console.log(`[ticket_service] Ticket ${ticketId} aggiornato a "acquistato"`)
+        console.log(`[ticket_service] Cache aggiornata per ticket:${ticketId}`)
     }
 
     if (channel === "ordine-annullato") {
@@ -64,8 +62,8 @@ subscriber.on("message", async (channel, message) => {
         await ticket.update({ status: "disponibile" })
         await redis.set(`ticket:${ticketId}`, JSON.stringify(ticket))
 
-        console.log(`[ticket_service] 🎫 Ticket ${ticketId} aggiornato a "disponibile"`)
-        console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
+        console.log(`[ticket_service] Ticket ${ticketId} aggiornato a "disponibile"`)
+        console.log(`[ticket_service] Cache aggiornata per ticket:${ticketId}`)
     }
 
     if (channel === "ordine-scaduto") {
@@ -93,8 +91,8 @@ subscriber.on("message", async (channel, message) => {
             await ticket.update({ status: "disponibile" })
             await redis.set(`ticket:${ticketId}`, JSON.stringify(ticket))
 
-            console.log(`[ticket_service] 🕒 Ticket ${ticketId} scaduto: aggiornato a "disponibile"`)
-            console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
+            console.log(`[ticket_service] Ticket ${ticketId} scaduto: aggiornato a "disponibile"`)
+            console.log(`[ticket_service] Cache aggiornata per ticket:${ticketId}`)
         }
     }
 
@@ -122,8 +120,8 @@ subscriber.on("message", async (channel, message) => {
         await ticket.update({ status: "impegnato" })
         await redis.set(`ticket:${ticketId}`, JSON.stringify(ticket))
 
-        console.log(`[ticket_service] 🎫 Ticket ${ticketId} aggiornato a "impegnato"`)
-        console.log(`[ticket_service] 💾 Cache aggiornata per ticket:${ticketId}`)
+        console.log(`[ticket_service] Ticket ${ticketId} aggiornato a "impegnato"`)
+        console.log(`[ticket_service] Cache aggiornata per ticket:${ticketId}`)
     }
 
     if (channel === "user-aggiornato") {
@@ -141,8 +139,8 @@ subscriber.on("message", async (channel, message) => {
         }
 
         await redis.set(`user:${data.id}`, JSON.stringify(data))
-        console.log(`[ticket_service] 👤 Cache aggiornata per utente ${data.id}`)
+        console.log(`[ticket_service] Cache aggiornata per utente ${data.id}`)
     }
 })
 
-console.log("[ticket_service] ✅ Subscriber attivo per ordine-creato, ordine-completato, ordine-annullato, ordine-scaduto e user-aggiornato")
+console.log("[ticket_service] Subscriber attivo per ordine-creato, ordine-completato, ordine-annullato, ordine-scaduto e user-aggiornato")
